@@ -131,8 +131,7 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
             start =  CFAbsoluteTimeGetCurrent()*1000;
             avcodec_decode_video2(codecCtx, pFrame, &frameFinished,
                                   &packet);
-            end = CFAbsoluteTimeGetCurrent()*1000;
-            NSLog(@"decode[%d X %d] use  time =%f millisecond ", codecCtx->width,codecCtx->height,(end-start));
+   
             
             if (frameFinished) {
                 
@@ -147,6 +146,8 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
                           (const uint8_t* const *) pFrame->data, pFrame->linesize,
                           0, codecCtx->height, pFrameYUV->data,
                           pFrameYUV->linesize);
+                end = CFAbsoluteTimeGetCurrent()*1000;
+                NSLog(@"decode[%d X %d] use  time =%f millisecond ", codecCtx->width,codecCtx->height,(end-start));
                 
                 int size = (codecCtx->width) * (codecCtx->height);
 
@@ -157,7 +158,11 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
                 
                 if (self.delegate && [self.delegate respondsToSelector:@selector(yuvData:width:height:)])
                 {
+                    start =  CFAbsoluteTimeGetCurrent()*1000;
                     [self.delegate yuvData:yuvBuffer width:codecCtx->width height:codecCtx->height];
+                    end = CFAbsoluteTimeGetCurrent()*1000;
+                    NSLog(@"show yuv [%d X %d] use  time =%f millisecond ", codecCtx->width,codecCtx->height,(end-start));
+                    
                 }
             }
         }
@@ -179,6 +184,11 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
 }
 
 -(void)deinit_rtsp_context{
+    
+    if (img_convert_ctx) {
+        sws_freeContext(img_convert_ctx);
+        img_convert_ctx = NULL;
+    }
     
     if (codecCtx) {
         avcodec_close(codecCtx);
