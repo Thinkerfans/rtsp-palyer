@@ -22,6 +22,8 @@
     char * yuvBuffer;
     int vStreamIndex ;
     BOOL isPlaying;
+    int outHeight;
+    int outWidth;
 }
 
 
@@ -35,7 +37,7 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
     AVCodec *pCodec = NULL;
     int ret = -1;
     codecCtx = formatCtx->streams[vStreamIndex]->codec;
-     NSLog(@"video resolution is [%d x %d]", codecCtx->width, codecCtx->height);
+     NSLog(@"video resolution is [%d x %d] fmt=%d", codecCtx->width, codecCtx->height,codecCtx->pix_fmt);
      pCodec = avcodec_find_decoder(codecCtx->codec_id);
      NSLog(@" avcodec_find_decoder  %p",pCodec);
     
@@ -50,8 +52,11 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
         return ret;
     }
     
-    yuvBuffer = (char *) av_malloc(
-                                   codecCtx->width * codecCtx->height * 3 / 2
+
+    
+    outHeight = 240;
+    outWidth = 320;
+    yuvBuffer = (char *) av_malloc(outWidth * outHeight* 3 / 2
                                    * sizeof(uint8_t));
     return ret;
 }
@@ -107,20 +112,24 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
     
     int frameFinished = 0;
     AVPacket packet;
-    AVFrame *pFrame,*pFrameYUV;
+    AVFrame *pFrame = NULL;
+    AVPicture pFrameYUV ;
     
     pFrame = av_frame_alloc();
-    pFrameYUV = av_frame_alloc();
-    int numBytes = avpicture_get_size(PIX_FMT_RGB24, codecCtx->width,
-                                      codecCtx->height);
-    uint8_t * buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
-    avpicture_fill((AVPicture *) pFrame, buffer, PIX_FMT_RGB24,
-                   codecCtx->width, codecCtx->height);
-    numBytes = avpicture_get_size(PIX_FMT_YUV420P, codecCtx->width, codecCtx->height);
-    uint8_t * out_buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
-    avpicture_fill((AVPicture *) pFrameYUV, out_buffer, PIX_FMT_YUV420P,
-                   codecCtx->width, codecCtx->height);
-    NSLog(@" read start ,pFram=%p, pFrameYuv=%p",pFrame,pFrameYUV);
+    avpicture_alloc(&pFrameYUV, PIX_FMT_YUV420P, outWidth , outHeight);
+
+//    pFrameYUV = av_frame_alloc();
+//    int numBytes = avpicture_get_size(PIX_FMT_YUV420P, codecCtx->width,
+//                                      codecCtx->height);
+//    uint8_t * buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
+//    avpicture_fill((AVPicture *) pFrame, buffer, PIX_FMT_YUV420P,
+//                   codecCtx->width, codecCtx->height);
+    
+//    numBytes = avpicture_get_size(PIX_FMT_YUV420P, codecCtx->width, codecCtx->height);
+//    uint8_t * out_buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
+//    avpicture_fill((AVPicture *) pFrameYUV, out_buffer, PIX_FMT_YUV420P,
+//                   codecCtx->width, codecCtx->height);
+    NSLog(@" read start ,pFram=%p ",pFrame);
     
     double start, end;
     
@@ -138,28 +147,29 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
                 if (!img_convert_ctx) {
                     img_convert_ctx = sws_getContext(codecCtx->width,
                                                      codecCtx->height, codecCtx->pix_fmt,
-                                                     codecCtx->width, codecCtx->height,
+                                                     outWidth, outHeight,
                                                      PIX_FMT_YUV420P, SWS_FAST_BILINEAR, NULL, NULL, NULL);
                 }
                 
+                
                 sws_scale(img_convert_ctx,
                           (const uint8_t* const *) pFrame->data, pFrame->linesize,
-                          0, codecCtx->height, pFrameYUV->data,
-                          pFrameYUV->linesize);
+                          0, pFrame->height, pFrameYUV.data,
+                          pFrameYUV.linesize);
                 end = CFAbsoluteTimeGetCurrent()*1000;
-                NSLog(@"decode[%d X %d] use  time =%f millisecond ", codecCtx->width,codecCtx->height,(end-start));
+                NSLog(@"decode[%d X %d] pix_fmt =%d  color_fmt use  time =%f millisecond ", codecCtx->width,codecCtx->height,codecCtx->pix_fmt ,(end-start));
                 
-                int size = (codecCtx->width) * (codecCtx->height);
+                int size = (outWidth) * (outHeight);
 
-                memcpy(yuvBuffer, pFrameYUV->data[0], size);
-                memcpy(yuvBuffer + size, pFrameYUV->data[1], size / 4);
-                memcpy(yuvBuffer + size + size / 4, pFrameYUV->data[2],
+                memcpy(yuvBuffer, pFrameYUV.data[0], size);
+                memcpy(yuvBuffer + size, pFrameYUV.data[1], size / 4);
+                memcpy(yuvBuffer + size + size / 4, pFrameYUV.data[2],
                        size / 4);
-                
+
                 if (self.delegate && [self.delegate respondsToSelector:@selector(yuvData:width:height:)])
                 {
                     start =  CFAbsoluteTimeGetCurrent()*1000;
-                    [self.delegate yuvData:yuvBuffer width:codecCtx->width height:codecCtx->height];
+                    [self.delegate yuvData:yuvBuffer width:outWidth height:outHeight];
                     end = CFAbsoluteTimeGetCurrent()*1000;
                     NSLog(@"show yuv [%d X %d] use  time =%f millisecond ", codecCtx->width,codecCtx->height,(end-start));
                     
@@ -173,9 +183,9 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
     if(pFrame){
         av_frame_free(&pFrame);
     }
-    if(pFrameYUV){
-        av_frame_free(&pFrameYUV);
-    }
+//    if(pFrameYUV != NULL){
+        avpicture_free(&pFrameYUV);
+//    }
     
 }
 

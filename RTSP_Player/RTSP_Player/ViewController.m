@@ -50,7 +50,7 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
     rtsp = [[FFRtsp alloc]init];
     [rtsp setDelegate:self];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [rtsp init_rtsp_contex:URL_720P];
+        [rtsp init_rtsp_contex:URL_288P];
     });
 }
 
