@@ -54,8 +54,8 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
     
 
     
-    outHeight = 240;
-    outWidth = 320;
+    outHeight = 720;
+    outWidth = 1280;
     yuvBuffer = (char *) av_malloc(outWidth * outHeight* 3 / 2
                                    * sizeof(uint8_t));
     return ret;
