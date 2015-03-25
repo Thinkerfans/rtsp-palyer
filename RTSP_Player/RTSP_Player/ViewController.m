@@ -41,6 +41,8 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
     //非主线程执行
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         [rtsp play];
+        NSLog(@"thread %s , %@",__FUNCTION__,[NSThread currentThread]);
+
     });
 }
 
@@ -48,6 +50,9 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    NSLog(@" thread %s , %@",__FUNCTION__,[NSThread currentThread]);
+
     // Do any additional setup after loading the view, typically from a nib.
     screenWidth = [[UIScreen mainScreen] bounds].size.width;
     screenHeight = [[UIScreen mainScreen] bounds].size.height;
@@ -57,7 +62,7 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
     rtsp = [[FFRtsp alloc]init];
     [rtsp setDelegate:self];
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification"  object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didRotate:) name:UIApplicationDidChangeStatusBarOrientationNotification  object:nil];
     orientation = (UIDeviceOrientation)[UIApplication sharedApplication].statusBarOrientation;    //This is more reliable than (self.interfaceOrientation) and [[UIDevice currentDevice] orientation] (which may give a faceup type value)
     if (orientation == UIDeviceOrientationUnknown || orientation == UIDeviceOrientationFaceUp || orientation == UIDeviceOrientationFaceDown)
     {
@@ -65,7 +70,7 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
     }
     
     glView = [[OpenGLView20 alloc]init];
-    [self setToPortrait];
+    [self initWindowViews];
     [self.view addSubview:glView];
 
 
@@ -128,7 +133,8 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
 }
 
 -(void)yuvData:(char *)data width:(int)w height:(int)h{
-    
+    NSLog(@"thread %s , %@",__FUNCTION__,[NSThread currentThread]);
+
 //    dispatch_async(dispatch_get_main_queue(),  ^{
     
         [glView displayYUV420pData:data width:w height:h];
