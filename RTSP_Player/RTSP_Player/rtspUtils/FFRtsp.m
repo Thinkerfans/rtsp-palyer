@@ -26,6 +26,79 @@
     int outWidth;
 }
 
+int saveToJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame,const char * fileName) {
+    AVCodecContext *codecCtx;
+    AVCodec *codec;
+    uint8_t *buffer;
+    int bufferSize;
+    int ret;
+    int fmt = PIX_FMT_YUVJ420P;
+    FILE *file = NULL;
+    
+    bufferSize = avpicture_get_size(fmt, pCodecCtx->width, pCodecCtx->height);
+    
+    buffer = (uint8_t *) malloc(bufferSize);
+    if (buffer == NULL)
+        return (0);
+    memset(buffer, 0, bufferSize);
+    
+    codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+    if (!codec) {
+        NSLog(@"error avcodec_find_encoder ");
+        free(buffer);
+        return (0);
+    }
+    
+    codecCtx = avcodec_alloc_context3(codec);
+    if (!codecCtx) {
+        NSLog(@"error avcodec_alloc_context3 ");
+        free(buffer);
+        return (0);
+    }
+    
+    codecCtx->bit_rate = pCodecCtx->bit_rate;
+    codecCtx->width = pCodecCtx->width;
+    codecCtx->height = pCodecCtx->height;
+    codecCtx->pix_fmt = fmt;
+    codecCtx->codec_id = CODEC_ID_MJPEG;
+    codecCtx->codec_type = AVMEDIA_TYPE_VIDEO;
+    codecCtx->time_base.num = 1;
+    codecCtx->time_base.den = pCodecCtx->time_base.den;
+    
+    
+    if (avcodec_open2(codecCtx, codec,NULL) < 0) {
+        NSLog(@"error avcodec_open2 ");
+        free(buffer);
+        return (0);
+    }
+    
+    codecCtx->mb_lmin = codecCtx->qmin * FF_QP2LAMBDA;
+    codecCtx->mb_lmax = codecCtx->qmax * FF_QP2LAMBDA;
+    codecCtx->flags = CODEC_FLAG_QSCALE;
+    codecCtx->global_quality = codecCtx->qmin * FF_QP2LAMBDA;
+    
+    pFrame->pts = 1;
+    pFrame->quality = codecCtx->global_quality;
+    ret = avcodec_encode_video(codecCtx, buffer, bufferSize, pFrame);
+    
+    file = fopen(fileName, "wb");
+    if (!file) {
+        NSLog(@"error fopen %s ",fileName);
+        printf("file = %s",fileName);
+        free(buffer);
+        avcodec_close(codecCtx);
+        return (0);
+    }
+    
+    fwrite(buffer, 1, ret, file);
+    fclose(file);
+    
+    avcodec_close(codecCtx);
+    free(buffer);
+    return (ret);
+}
+
+
 
 static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
 {
@@ -132,6 +205,7 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
     NSLog(@" read start ,pFram=%p ",pFrame);
     
     double start, end;
+    BOOL isSnapShot = TRUE;
     
     while (isPlaying && av_read_frame(formatCtx, &packet) >= 0) {
         
@@ -165,6 +239,12 @@ static void log_callback(void* ptr, int level, const char* fmt, va_list vl)
                 memcpy(yuvBuffer + size, pFrameYUV.data[1], size / 4);
                 memcpy(yuvBuffer + size + size / 4, pFrameYUV.data[2],
                        size / 4);
+//                if (isSnapShot) {
+//                    isSnapShot = FALSE;
+//                    NSString * path =  [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"test.jpg"];//模拟器
+//                    NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/test.jpg"]; //真机
+//                    saveToJPEG(codecCtx, pFrame, [path UTF8String]);
+//                }
 
                 if (self.delegate && [self.delegate respondsToSelector:@selector(yuvData:width:height:)])
                 {

@@ -75,17 +75,22 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
 
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [rtsp init_rtsp_contex:URL_720P];
+        [rtsp init_rtsp_contex:URL_288P];
     });
 }
 
--(NSUInteger)supportedInterfaceOrientations{
-    return UIInterfaceOrientationMaskAllButUpsideDown;  // 可以修改为任何方向
-}
+//-(NSUInteger)supportedInterfaceOrientations{
+//    return UIInterfaceOrientationMaskAllButUpsideDown;  // 可以修改为任何方向
+//}
+//
+//-(BOOL)shouldAutorotate{
+//    return YES;
+//}
+//// iOS5.0
+//-(BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation{
+//    return UIInterfaceOrientationMaskAllButUpsideDown;  // 可以修改为任何方向
+//}
 
--(BOOL)shouldAutorotate{
-    return YES;
-}
 
 -(void)didRotate:(NSNotification *)notification{
     
@@ -122,11 +127,6 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
     NSLog(@"didRotate portrait  : CGFloat x=%f, CGFloat y=%f, CGFloat width=%f, CGFloat height=%f ",0.0,(screenWidth-height)/2,screenWidth,height);
 }
 
-// iOS5.0
--(BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation{
-    return UIInterfaceOrientationMaskAllButUpsideDown;  // 可以修改为任何方向
-}
-
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
@@ -138,7 +138,7 @@ const char * URL_288P = "rtsp://218.204.223.237:554/live/1/66251FC11353191F/e7oo
 //    dispatch_async(dispatch_get_main_queue(),  ^{
     
         [glView displayYUV420pData:data width:w height:h];
-        
+    
 //    });
 }
 
